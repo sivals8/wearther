@@ -13,7 +13,7 @@ import {
 import { getWeather } from "./lib/weather";
 import { getWeatherCondition} from "./lib/weatherConditions";
 import HourlyForecast from "./components/HourlyForecast";
-
+import LocationMenu from "./components/LocationMenu";
 
 export default async function Home() {
 
@@ -33,7 +33,12 @@ export default async function Home() {
   const CurrentWeatherIcon = currentWeather.icon;
 
   //hourly mapping
-  const hourlyWeather = weather.hourly.time.slice(0, 24).map((time, index) => {
+  const currentHour = weather.current.time.substring(0,13);
+  const currentHourIndex = weather.hourly.time.findIndex((time) => {
+    return time.startsWith(currentHour);
+  });
+
+  const hourlyWeather = weather.hourly.time.slice(0, currentHourIndex === -1 ? 24 : currentHourIndex + 13).map((time, index) => {
     return {
       time: time,
       temperature: Math.round(weather.hourly.temperature_2m[index]),
@@ -42,10 +47,15 @@ export default async function Home() {
     };
   });
 
-  const currentHour = weather.current.time.substring(0,13);
-  const currentHourIndex = hourlyWeather.findIndex((hour) => {
-    return hour.time.startsWith(currentHour);
-  });
+  const dailyWeather = weather.daily.time.map((time, index) => {
+    return {
+      time: time,
+      maxTemperature: Math.round(weather.daily.temperature_2m_max[index]),
+      minTemperature: Math.round(weather.daily.temperature_2m_min[index]),
+      weatherCode: weather.daily.weather_code[index],
+    };
+  })
+
 
   return (
     <main
@@ -57,16 +67,20 @@ export default async function Home() {
       <div className=" relative mx-auto w-full max-w-md flex-col px-6 pt-8 pb-8 lg:max-w-3xl">
 
         {/*Greeting and Location */}
-          <div className = "grid grid-cols-2 items-center place-content-center">
-            <h2 className = "flex align-bottom gap-2 text-xl sm:text-2xl">
-              Good Morning!
-            </h2>
-            {/* Location */} 
-            <div className="flex place-content-end gap-2">
-              <MapPin className="h-5 w-5" />
-              <span className="text-md font-light tracking-[0.12em] sm:tracking-[0.2em]">Hamilton</span>
-            </div>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl sm:text-2xl">
+            Good Morning!
+          </h2>
+
+          <div className="flex items-center">
+            <span className="text-sm font-light tracking-wider">
+              Hamilton
+            </span>
+            <LocationMenu />
+            
           </div>
+          
+        </div>
           
 
           {/* Temperature */}
@@ -132,36 +146,40 @@ export default async function Home() {
                   <span className = "text-sm font-bold">
                     Daily Forecast</span>
               </div>
-              <div className = "grid grid-rows-7 mt-2 gap-2">
-                <div className = "flex line justify-between text-sm text-white">
-                  <span>Today</span>
-                  <span>12º</span>
-                </div>
-                <div className = "flex line justify-between text-sm text-white">
-                  <span>Saturday</span>
-                  <span>6º</span>
-                </div>
-                <div className = "flex line justify-between text-sm text-white">
-                  <span>Sunday</span>
-                  <span>8º</span>
-                </div>
-                <div className = "flex line justify-between text-sm text-white">
-                  <span>Monday</span>
-                  <span>11º</span>
-                </div>
-                <div className = "flex line justify-between text-sm text-white">
-                  <span>Tuesday</span>
-                  <span>14º</span>
-                </div>
-                <div className = "flex line justify-between text-sm text-white">
-                  <span>Wednesday</span>
-                  <span>9º</span>
-                </div>
-                <div className = "flex justify-between text-sm text-white">
-                  <span>Thursday</span>
-                  <span>13º</span>
-                </div>
-                
+              <div className = "grid gap-3 mt-4">
+                {dailyWeather.map((day, index) => {
+                  //change date into weekday name
+                  const date = new Date(day.time + "T12:00:00");
+
+                  const dayName = index === 0
+                  ? "Today"
+                  : date.toLocaleDateString("en-US", { weekday: "long" });
+
+                  //get icon for the day's weather
+                  const dailyCondition = getWeatherCondition(day.weatherCode, true);
+                  const WeatherIcon = dailyCondition.icon;
+
+                  return (
+                    <div
+                      key={day.time}
+                      className= {`flex items-center justify-between px-3 py-2 text-sm text-white ${
+                        dayName === "Today"
+                        ? "bg-white/15 rounded-xl"
+                        : "line"
+                      }`}
+                    >
+                      <span className="w-24">{dayName}</span>
+          
+                      <WeatherIcon className="h-5 w-5" />
+          
+                      <div className="flex gap-4">
+                        <span className="font-bold">{day.maxTemperature}°</span>
+                        <span className="text-white/60">{day.minTemperature}°</span>
+                      </div>
+                    </div>
+                  );
+                })}
+
               </div>
               
 
