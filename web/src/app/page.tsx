@@ -13,15 +13,29 @@ import {
 import { getWeather } from "./lib/weather";
 import { getWeatherCondition} from "./lib/weatherConditions";
 import HourlyForecast from "./components/HourlyForecast";
+import DailyForecast from "./components/DailyForecast";
 import LocationMenu from "./components/LocationMenu";
+import Link from "next/link";
 
-export default async function Home() {
+//fetch weather data based on search
+interface HomeProps {
+  searchParams: Promise<{
+    lat?: string;
+    lon?: string;
+    city?: string;
+  }>;
+}
 
-  //fetch weather data (hamilton)
-  const latitude = 43.2557;
-  const longitude = -79.8711;
+export default async function Home({searchParams}: HomeProps) {
 
   //fetch latest weather data
+  const params = await searchParams;
+
+  //if no location selected, default to hammy for now, live location weather later
+  const latitude = params.lat ? Number(params.lat) : 43.2557;
+  const longitude = params.lon ? Number(params.lon) : -79.8711;
+  const cityName = params.city || "Hamilton";
+
   const weather = await getWeather(latitude, longitude);
 
   //extract current info
@@ -64,25 +78,24 @@ export default async function Home() {
         backgroundImage: "url('/images/rainybg.jpg')",
       }}
     >
-      <div className=" relative mx-auto w-full max-w-md flex-col px-6 pt-8 pb-8 lg:max-w-3xl">
-
-        {/*Greeting and Location */}
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl sm:text-2xl">
-            Good Morning!
-          </h2>
-
-          <div className="flex items-center">
-            <span className="text-sm font-light tracking-wider">
-              Hamilton
-            </span>
-            <LocationMenu />
+      <div>
+        {/*location */}
+        <div className="relative mx-auto w-full max-w-md flex-col pt-4 lg:max-w-3xl">
+          <div className="flex min-w-0 items-center justify-center gap-2">
+            <div className = "relative z-30 shrink-0">
+            <LocationMenu cityName= {cityName} />
+            </div>
             
           </div>
           
         </div>
+      </div>
+      <div className="relative mx-auto w-full max-w-md flex-col px-6 pt-4 pb-8 lg:max-w-3xl">
           
-
+          {/*Greeting */}
+          <h2 className="text-xl sm:text-2xl">
+            Good Morning!
+          </h2>
           {/* Temperature */}
           <div>
             <p className="text-sm mt-2 font-medium">Today's Weather</p>
@@ -139,55 +152,7 @@ export default async function Home() {
           </div>
 
           {/*Daily Forecast */}
-          <div className = "mt-auto w-full pt-12">
-            <div className="liquid-glass relative mx-auto rounded-2xl p-4">
-              <div className="flex items-center gap-2 text-white">
-                  <CalendarDays className = "h-4 w-4"/>
-                  <span className = "text-sm font-bold">
-                    Daily Forecast</span>
-              </div>
-              <div className = "grid gap-3 mt-4">
-                {dailyWeather.map((day, index) => {
-                  //change date into weekday name
-                  const date = new Date(day.time + "T12:00:00");
-
-                  const dayName = index === 0
-                  ? "Today"
-                  : date.toLocaleDateString("en-US", { weekday: "long" });
-
-                  //get icon for the day's weather
-                  const dailyCondition = getWeatherCondition(day.weatherCode, true);
-                  const WeatherIcon = dailyCondition.icon;
-
-                  return (
-                    <div
-                      key={day.time}
-                      className= {`flex items-center justify-between px-3 py-2 text-sm text-white ${
-                        dayName === "Today"
-                        ? "bg-white/15 rounded-xl"
-                        : "line"
-                      }`}
-                    >
-                      <span className="w-24">{dayName}</span>
-          
-                      <WeatherIcon className="h-5 w-5" />
-          
-                      <div className="flex gap-4">
-                        <span className="font-bold">{day.maxTemperature}°</span>
-                        <span className="text-white/60">{day.minTemperature}°</span>
-                      </div>
-                    </div>
-                  );
-                })}
-
-              </div>
-              
-
-            </div>
-          </div>
-
-          
-
+          <DailyForecast dailyWeather={dailyWeather} />
 
       </div>
     </main>

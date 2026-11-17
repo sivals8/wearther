@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import { Menu, MapPin, Search } from "lucide-react";
 import { searchCities, type City } from "../lib/geocoding";
-export default function LocationMenu() {
+import { useRouter } from "next/navigation";
+
+//button not working when opened on phone
+import { createPortal } from "react-dom";
+
+// Props passed from the homepage
+interface LocationMenuProps {
+  cityName: string;
+}
+
+export default function LocationMenu({cityName}: LocationMenuProps) {
   // Track whether the menu is open
   const [isOpen, setIsOpen] = useState(false);
   //store what they type
@@ -13,6 +23,12 @@ export default function LocationMenu() {
   
   //track if search is actually loading
   const [isLoading,setIsLoading] = useState(false);
+
+  const router = useRouter();
+
+  const [mounted, setMounted] = useState(false);
+
+  
 
   useEffect(()=> {
     //don't search when menu closed or search len too short
@@ -52,17 +68,42 @@ export default function LocationMenu() {
     };
   }, [query, isOpen]);
 
+  //city selection handling
+    function handleCitySelect(city: City) {
+      //store the selected city's information in the URL
+      const params = new URLSearchParams();
+
+      params.set("lat", city.latitude.toString());
+      params.set("lon", city.longitude.toString());
+      params.set("city", city.name);
+
+      //close menu clear searck they made
+      setIsOpen(false);
+      setQuery("");
+      setCities([]);
+
+      // navigate to the dashboard with the selected location
+      router.push(`/?${params.toString()}`);
+      
+    }
+
   return (
     <div>
-      {/* Hamburger button */}
+      {/* switch location button */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="rounded-full p-2 text-white active:scale-95"
+        className="flex items-center text-white active:scale-95 liquid-glass rounded-xl p-2 gap-1"
         aria-label="Open location menu"
         aria-expanded={isOpen}
       >
-        <MapPin className="h-5 w-5" />
+        <div>
+          <MapPin className = "h-3.5 w-3.5" />
+        </div>
+        <span className="min-w-0 truncate text-right text-xs font-light tracking-widest">
+          {cityName}
+        </span>
+        
       </button>
 
       {/* Only display the overlay when the menu is open */}
@@ -120,6 +161,7 @@ export default function LocationMenu() {
                         <button 
                         key = {city.id}
                         type = "button"
+                        onClick={() => handleCitySelect(city)}
                         className = "flex w-full items-center gap-3 rounded-xl bg-white/10 p-3 text-left text-white hover:bg-white/20"
                         >
                             <MapPin className = "h-4 w-4 shrink-0" />
